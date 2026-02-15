@@ -423,6 +423,11 @@ infect() {
     mkdir -p "$bootFs"
     mount "$esp" "$bootFs"
     find "$bootFs" -depth ! -path "$bootFs" -exec rm -rf {} +
+  else
+    # Non-EFI: unmount any separate /boot/efi or /boot so /boot is on root (ext4).
+    # Otherwise GRUB tries to embed into FAT and fails with "File system `fat' doesn't support embedding".
+    mount | grep -q ' on /boot/efi ' && umount /boot/efi 2>/dev/null || true
+    mount | grep -q ' on /boot ' && umount /boot 2>/dev/null || true
   fi
   /nix/var/nix/profiles/system/bin/switch-to-configuration boot
 }
