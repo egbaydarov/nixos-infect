@@ -31,6 +31,7 @@ This script has successfully been tested on at least the follow hosting provider
 * [Ionos](https://www.ionos.de/server/vps)
 * [Aeza](https://aeza.net/)
 * [Severs.com](https://servers.com)
+* [TimeWeb Cloud (TWC)](https://timeweb.cloud/)
 
 Should you find that it works on your hoster,
 feel free to update this README and issue a pull request.
@@ -440,6 +441,16 @@ Just set an SSH-Key and run the Script.
 |Distribution|       Name      | Status        | test date|
 |------------|-----------------|---------------|----------|
 |Ubuntu      | 22.04           | **success**   |2024-05-15|
+
+### TimeWeb Cloud (TWC)
+TimeWeb Cloud uses NoCloud (seed on `/dev/vda`) and typically non-EFI VMs. Set `PROVIDER=timeweb` so the script generates static network config (doNetConf). Example cloud-init:
+
+```yaml
+#cloud-config
+
+runcmd:
+  - curl https://raw.githubusercontent.com/elitak/nixos-infect/master/nixos-infect | PROVIDER=timeweb NIX_CHANNEL=nixos-24.05 bash 2>&1 | tee /tmp/infect.log
+```
 
 ### Aeza
 Aeza works with `doNetConf=y` parameter:
