@@ -5,6 +5,9 @@
 
 set -e -o pipefail
 
+# Fingerprint so we can confirm this revision is running (check cloud-init or /tmp/infect.log)
+echo "[nixos-infect] script rev: TWC-fixes (grubdev-from-rootfsdev, EFI-only-boot-backup)" >&2
+
 autodetectProvider() {
   if [ -e /etc/hetzner-build ]; then
     PROVIDER="hetznercloud"
@@ -464,8 +467,10 @@ infect() {
   (cd / && ls etc/ssh/ssh_host_*_key* || true) >> /etc/NIXOS_LUSTRATE
 
   # Only backup/remount boot fs when EFI and bootFs is set; non-EFI uses grubdev only.
-  # Guard with [[ -n "$bootFs" ]] again so we never run mv/cp with empty args (e.g. stale script).
+  efi_result=0; isEFI || efi_result=$?
+  echo "[nixos-infect] DEBUG: isEFI=$([ "$efi_result" -eq 0 ] && echo true || echo false) bootFs='${bootFs:-}' grubdev='${grubdev:-}' esp='${esp:-}'"
   if isEFI && [[ -n "${bootFs:-}" ]]; then
+    echo "[nixos-infect] Taking EFI branch: backup/remount boot fs at $bootFs"
     if [[ -n "$bootFs" ]]; then
       rm -rf "$bootFs.bak"
       umount "$esp"
@@ -475,6 +480,7 @@ infect() {
       find "$bootFs" -depth ! -path "$bootFs" -exec rm -rf {} +
     fi
   else
+    echo "[nixos-infect] Taking non-EFI branch: no boot fs backup, grubdev=$grubdev"
     # Non-EFI: unmount any separate /boot/efi or /boot so /boot is on root (ext4).
     mount | grep -q ' on /boot/efi ' && umount /boot/efi 2>/dev/null || true
     mount | grep -q ' on /boot ' && umount /boot 2>/dev/null || true
