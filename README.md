@@ -443,14 +443,19 @@ Just set an SSH-Key and run the Script.
 |Ubuntu      | 22.04           | **success**   |2024-05-15|
 
 ### TimeWeb Cloud (TWC)
-TimeWeb Cloud uses NoCloud (seed on `/dev/vda`) and typically non-EFI VMs. Set `PROVIDER=timeweb` so the script generates static network config (doNetConf). Example cloud-init:
+TimeWeb Cloud uses NoCloud (seed on `/dev/vda`) and the **system disk is usually `/dev/sda`**; `/dev/vda` is the small cloud-init seed. Use a fork that includes TWC fixes (grubdev derived from rootfsdev, EFI-only boot backup) or the upstream script will fail (mv/cp .bak, GRUB on wrong disk).
+
+Set `PROVIDER=timeweb` for static network config. Run the **fixed script from your repo** or inject it via `write_files` then execute from disk:
 
 ```yaml
 #cloud-config
 
 runcmd:
-  - curl https://raw.githubusercontent.com/elitak/nixos-infect/master/nixos-infect | PROVIDER=timeweb NIX_CHANNEL=nixos-24.05 bash 2>&1 | tee /tmp/infect.log
+  - curl https://raw.githubusercontent.com/YOUR_USER/nixos-infect/master/nixos-infect -o /root/nixos-infect
+  - PROVIDER=timeweb NIX_CHANNEL=nixos-24.05 bash /root/nixos-infect 2>&1 | tee /tmp/infect.log
 ```
+
+(Replace `YOUR_USER` with your GitHub username, or use the full URL to your fork.)
 
 ### Aeza
 Aeza works with `doNetConf=y` parameter:

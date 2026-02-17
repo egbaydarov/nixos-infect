@@ -1,6 +1,7 @@
 #! /usr/bin/env bash
 
 # More info at: https://github.com/elitak/nixos-infect
+# This script has TWC/nixos-infect fixes: grubdev from rootfsdev, always regenerate hardware-config, EFI-only bootFs backup
 
 set -e -o pipefail
 
@@ -462,14 +463,17 @@ infect() {
   echo root/.nix-defexpr/channels >> /etc/NIXOS_LUSTRATE
   (cd / && ls etc/ssh/ssh_host_*_key* || true) >> /etc/NIXOS_LUSTRATE
 
-  # Only backup/remount boot fs when EFI and bootFs is set; non-EFI uses grubdev only
+  # Only backup/remount boot fs when EFI and bootFs is set; non-EFI uses grubdev only.
+  # Guard with [[ -n "$bootFs" ]] again so we never run mv/cp with empty args (e.g. stale script).
   if isEFI && [[ -n "${bootFs:-}" ]]; then
-    rm -rf "$bootFs.bak"
-    umount "$esp"
-    mv -v "$bootFs" "$bootFs.bak" || { cp -a "$bootFs" "$bootFs.bak" ; rm -rf "$bootFs"/* ; umount "$bootFs" ; }
-    mkdir -p "$bootFs"
-    mount "$esp" "$bootFs"
-    find "$bootFs" -depth ! -path "$bootFs" -exec rm -rf {} +
+    if [[ -n "$bootFs" ]]; then
+      rm -rf "$bootFs.bak"
+      umount "$esp"
+      mv -v "$bootFs" "$bootFs.bak" || { cp -a "$bootFs" "$bootFs.bak" ; rm -rf "$bootFs"/* ; umount "$bootFs" ; }
+      mkdir -p "$bootFs"
+      mount "$esp" "$bootFs"
+      find "$bootFs" -depth ! -path "$bootFs" -exec rm -rf {} +
+    fi
   else
     # Non-EFI: unmount any separate /boot/efi or /boot so /boot is on root (ext4).
     mount | grep -q ' on /boot/efi ' && umount /boot/efi 2>/dev/null || true
